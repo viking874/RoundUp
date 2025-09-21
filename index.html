@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roundup</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e;
+            color: #ffffff;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 2rem;
+        }
+        .card {
+            background-color: #242442;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border: 1px solid #4a4a75;
+        }
+        input, button, select {
+            border-radius: 8px;
+            padding: 0.75rem;
+            transition: all 0.2s;
+        }
+        input, select, textarea {
+            background-color: #3b3b64;
+            color: #ffffff;
+            border: 1px solid #4a4a75;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #5d5df5;
+            box-shadow: 0 0 0 3px rgba(93, 93, 245, 0.5);
+        }
+        .primary-btn {
+            background-color: #5d5df5;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .primary-btn:hover {
+            background-color: #7272ff;
+        }
+        .secondary-btn {
+            background-color: #4a4a75;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .secondary-btn:hover {
+            background-color: #5d5d85;
+        }
+        .response-btn {
+            background-color: #3f9c35;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .response-btn:hover {
+            background-color: #4dc540;
+        }
+        .remove-btn {
+            background-color: #ef4444;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .remove-btn:hover {
+            background-color: #dc2626;
+        }
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+        textarea {
+            resize: vertical;
+        }
+        .edit-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body class="bg-[#1a1a2e] text-white">
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold mb-2">Roundup</h1>
+            <p class="text-sm text-gray-400">Manage your friend circles and send event invitations.</p>
+        </header>
+
+        <!-- User Info and Status -->
+        <div class="card mb-8">
+            <h2 class="text-2xl font-semibold mb-4">My Status</h2>
+            <div id="loading" class="text-center text-gray-400">Loading...</div>
+            <div id="user-info" class="hidden">
+                <p class="mb-2"><strong>My User ID:</strong></p>
+                <div class="flex items-center">
+                    <span id="userId" class="font-mono bg-gray-700 text-sm p-2 rounded-lg break-all flex-grow"></span>
+                    <button id="copyBtn" class="ml-2 px-3 py-1 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-500">Copy</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Circle Management Section -->
+        <div class="card mb-8">
+            <h2 class="text-2xl font-semibold mb-4">My Circles</h2>
+            <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                <input type="text" id="circleNameInput" class="flex-grow" placeholder="Enter new circle name">
+                <button id="addCircleBtn" class="primary-btn">Create Circle</button>
+            </div>
+            <div id="circlesList" class="space-y-4">
+                <p id="noCircles" class="text-gray-400">No circles created yet. Create one to add friends!</p>
+            </div>
+        </div>
+        
+        <!-- Invite Management Section -->
+        <div class="card mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Events</h2>
+            <div class="space-y-6">
+                <!-- Create Invite -->
+                <div>
+                    <h3 class="text-xl font-medium mb-2">Create New Invite</h3>
+                    <div class="flex flex-col gap-4">
+                        <select id="circleSelect" class="w-full">
+                            <option value="">Select a Circle</option>
+                        </select>
+                        <input type="text" id="eventNameInput" class="w-full" placeholder="e.g., Golf on Saturday">
+                        <input type="datetime-local" id="eventDateTimeInput" class="w-full">
+                        <input type="text" id="eventLocationInput" class="w-full" placeholder="e.g., The Golf Club">
+                        <input type="number" id="eventSpotsInput" class="w-full" placeholder="Number of available spots" min="1" value="4">
+                        <textarea id="eventMessageInput" class="w-full" rows="3" placeholder="Add an optional message..."></textarea>
+                        <button id="createInviteBtn" class="primary-btn w-full">Send Invite</button>
+                    </div>
+                </div>
+
+                <!-- My Sent Invites -->
+                <div>
+                    <h3 class="text-xl font-medium mb-2">My Sent Invites</h3>
+                    <div id="myInvitesList" class="space-y-4">
+                        <p id="noMyInvites" class="text-gray-400">No invitations sent yet.</p>
+                    </div>
+                </div>
+
+                <!-- Invites I've Received -->
+                <div>
+                    <h3 class="text-xl font-medium mb-2">Invites for Me</h3>
+                    <div id="invitesForMeList" class="space-y-4">
+                        <p id="noInvitesForMe" class="text-gray-400">No invitations for you.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Event Modal -->
+    <div id="editEventModal" class="edit-modal hidden">
+        <div class="card w-full max-w-lg">
+            <h3 class="text-2xl font-semibold mb-4">Edit Event</h3>
+            <input type="hidden" id="editEventId">
+            <div class="flex flex-col gap-4">
+                <input type="text" id="editEventNameInput" class="w-full" placeholder="Event Name">
+                <input type="datetime-local" id="editEventDateTimeInput" class="w-full">
+                <input type="text" id="editEventLocationInput" class="w-full" placeholder="Location">
+                <input type="number" id="editEventSpotsInput" class="w-full" placeholder="Available Spots" min="1">
+                <textarea id="editEventMessageInput" class="w-full" rows="3" placeholder="Optional Message"></textarea>
+                <div class="flex gap-4 mt-4">
+                    <button id="updateEventBtn" class="primary-btn flex-grow">Update Event</button>
+                    <button id="cancelEditBtn" class="secondary-btn flex-grow">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, where, arrayUnion, arrayRemove, serverTimestamp, getDocs, addDoc, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyBAWYh4befoM0Uf1enzhetBWye014HyTzc",
+          authDomain: "roundup-b7908.firebaseapp.com",
+          projectId: "roundup-b7908",
+          storageBucket: "roundup-b7908.firebasestorage.app",
+          messagingSenderId: "485325587757",
+          appId: "1:485325587757:web:332005f780fb42bbbc7fa4",
+          measurementId: "G-2L5BX1XJTG"
+        };
+
+        const appId = firebaseConfig.projectId;
+        if (!appId) {
+            document.getElementById('loading').textContent = 'Error: Missing Firebase configuration. Please paste your config inside the code.';
+            throw new Error("Missing Firebase configuration.");
+        }
+
+        // Firebase Initialization
+        console.log('Initializing Firebase...');
+        setLogLevel('debug'); // Enable debug logs for Firestore
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        console.log('Firebase initialized successfully');
+        
+        let userId = '';
+        let isAuthReady = false;
+        let circles = [];
+
+        const loadingElem = document.getElementById('loading');
+        const userInfoElem = document.getElementById('user-info');
+        const userIdElem = document.getElementById('userId');
+        const copyBtn = document.getElementById('copyBtn');
+        const circleNameInput = document.getElementById('circleNameInput');
+        const addCircleBtn = document.getElementById('addCircleBtn');
+        const circlesListElem = document.getElementById('circlesList');
+        const noCirclesElem = document.getElementById('noCircles');
+        const circleSelect = document.getElementById('circleSelect');
+        const eventNameInput = document.getElementById('eventNameInput');
+        const eventDateTimeInput = document.getElementById('eventDateTimeInput');
+        const eventLocationInput = document.getElementById('eventLocationInput');
+        const eventSpotsInput = document.getElementById('eventSpotsInput');
+        const eventMessageInput = document.getElementById('eventMessageInput');
+        const createInviteBtn = document.getElementById('createInviteBtn');
+        const myInvitesListElem = document.getElementById('myInvitesList');
+        const noMyInvitesElem = document.getElementById('noMyInvites');
+        const invitesForMeListElem = document.getElementById('invitesForMeList');
+        const noInvitesForMeElem = document.getElementById('noInvitesForMe');
+
+        // Edit Event Modal elements
+        const editEventModal = document.getElementById('editEventModal');
+        const editEventIdInput = document.getElementById('editEventId');
+        const editEventNameInput = document.getElementById('editEventNameInput');
+        const editEventDateTimeInput = document.getElementById('editEventDateTimeInput');
+        const editEventLocationInput = document.getElementById('editEventLocationInput');
+        const editEventSpotsInput = document.getElementById('editEventSpotsInput');
+        const editEventMessageInput = document.getElementById('editEventMessageInput');
+        const updateEventBtn = document.getElementById('updateEventBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+        // Authentication and Firestore setup
+        onAuthStateChanged(auth, async (user) => {
+            console.log('Auth state changed:', user ? 'User signed in' : 'No user');
+            try {
+                if (user) {
+                    userId = user.uid;
+                    console.log('User ID:', userId);
+                } else {
+                    console.log('Signing in anonymously...');
+                    loadingElem.textContent = 'Signing in...';
+                    await signInAnonymously(auth);
+                    return; // Wait for the next auth state change
+                }
+                
+                // Wait for the auth state to be finalized
+                if (userId && !isAuthReady) {
+                    isAuthReady = true;
+                    console.log('Auth ready, setting up UI and listeners');
+                    loadingElem.classList.add('hidden');
+                    userInfoElem.classList.remove('hidden');
+                    userIdElem.textContent = userId;
+                    
+                    // Start real-time listeners for the authenticated user
+                    await setupListeners();
+                }
+            } catch (error) {
+                console.error('Authentication error:', error);
+                loadingElem.textContent = 'Authentication failed: ' + error.message;
+                loadingElem.style.color = '#ef4444';
+            }
+        });
+
+        async function setupListeners() {
+            try {
+                console.log('Setting up Firestore listeners...');
+                
+                // Test basic Firestore connectivity first
+                console.log('Testing Firestore connection...');
+                const testCollectionRef = collection(db, `/artifacts/${appId}/users/${userId}/circles`);
+                
+                // Listen for the user's circle data
+                onSnapshot(testCollectionRef, (querySnapshot) => {
+                    console.log('Circles data updated:', querySnapshot.size, 'documents');
+                    circles = [];
+                    querySnapshot.forEach(doc => {
+                        circles.push({ id: doc.id, ...doc.data() });
+                    });
+                    renderCircles();
+                }, (error) => {
+                    console.error("Error fetching circles data:", error);
+                    if (error.code === 'permission-denied') {
+                        loadingElem.textContent = 'Permission denied. Check Firebase security rules.';
+                        loadingElem.style.color = '#ef4444';
+                        loadingElem.classList.remove('hidden');
+                        userInfoElem.classList.add('hidden');
+                    }
+                });
+
+                // Listen for all public events that involve the current user
+                const eventsCollectionRef = collection(db, `/artifacts/${appId}/public/data/events`);
+                
+                // Query for invites I've created
+                const myInvitesQuery = query(eventsCollectionRef, where('creator_id', '==', userId));
+                onSnapshot(myInvitesQuery, (querySnapshot) => {
+                    console.log('My invites updated:', querySnapshot.size, 'documents');
+                    const myInvites = [];
+                    querySnapshot.forEach(doc => {
+                        myInvites.push({ id: doc.id, ...doc.data() });
+                    });
+                    renderMyInvites(myInvites);
+                }, (error) => {
+                    console.error("Error fetching my invites:", error);
+                });
+
+                // Query for invites I've received
+                const invitesForMeQuery = query(eventsCollectionRef, where('invited_users', 'array-contains', userId));
+                onSnapshot(invitesForMeQuery, (querySnapshot) => {
+                    console.log('Invites for me updated:', querySnapshot.size, 'documents');
+                    const invitesForMe = [];
+                    querySnapshot.forEach(doc => {
+                        // Don't show invites I created
+                        if (doc.data().creator_id !== userId) {
+                            invitesForMe.push({ id: doc.id, ...doc.data() });
+                        }
+                    });
+                    renderInvitesForMe(invitesForMe);
+                }, (error) => {
+                    console.error("Error fetching invites for me:", error);
+                });
+                
+                console.log('All listeners set up successfully');
+            } catch (error) {
+                console.error('Error setting up listeners:', error);
+                loadingElem.textContent = 'Error connecting to database: ' + error.message;
+                loadingElem.style.color = '#ef4444';
+            }
+        }
+        
+        async function deleteCircle(circleId) {
+            if (!isAuthReady) return;
+            const circleDocRef = doc(db, `/artifacts/${appId}/users/${userId}/circles`, circleId);
+            try {
+                await deleteDoc(circleDocRef);
+                console.log("Circle deleted successfully!");
+            } catch (error) {
+                console.error("Error deleting circle:", error);
+            }
+        }
+
+        async function addCircle() {
+            if (!isAuthReady) return;
+            const circleName = circleNameInput.value.trim();
+            if (!circleName) return;
+
+            console.log('Creating circle:', circleName);
+            const circlesCollectionRef = collection(db, `/artifacts/${appId}/users/${userId}/circles`);
+            try {
+                await addDoc(circlesCollectionRef, {
+                    name: circleName,
+                    friends: [],
+                    created_at: serverTimestamp()
+                });
+                console.log("Circle created!");
+                circleNameInput.value = '';
+            } catch (error) {
+                console.error("Error creating circle:", error);
+            }
+        }
+        
+        async function editCircleName(circleId) {
+            if (!isAuthReady) return;
+            const circle = circles.find(c => c.id === circleId);
+            if (!circle) return;
+
+            const newName = prompt("Enter new name for " + circle.name, circle.name);
+            if (newName && newName.trim() !== '' && newName !== circle.name) {
+                const circleDocRef = doc(db, `/artifacts/${appId}/users/${userId}/circles`, circleId);
+                try {
+                    await updateDoc(circleDocRef, { name: newName.trim() });
+                    console.log("Circle renamed successfully!");
+                } catch (error) {
+                    console.error("Error renaming circle:", error);
+                }
+            }
+        }
+
+        async function addFriendToCircle(circleId) {
+            if (!isAuthReady) return;
+            const friendIdInput = document.getElementById(`friendIdInput-${circleId}`);
+            const friendId = friendIdInput.value.trim();
+            if (!friendId) return;
+
+            const circleDocRef = doc(db, `/artifacts/${appId}/users/${userId}/circles`, circleId);
+            try {
+                await updateDoc(circleDocRef, {
+                    friends: arrayUnion(friendId)
+                });
+                console.log("Friend added to circle!");
+                friendIdInput.value = '';
+            } catch (error) {
+                console.error("Error adding friend:", error);
+            }
+        }
+        
+        async function removeFriendFromCircle(circleId, friendId) {
+            if (!isAuthReady) return;
+
+            const circleDocRef = doc(db, `/artifacts/${appId}/users/${userId}/circles`, circleId);
+            try {
+                await updateDoc(circleDocRef, {
+                    friends: arrayRemove(friendId)
+                });
+                console.log("Friend removed from circle!");
+            } catch (error) {
+                console.error("Error removing friend:", error);
+            }
+        }
+
+        async function createAndSendInvite() {
+            if (!isAuthReady) return;
+            const selectedCircleId = circleSelect.value;
+            const eventName = eventNameInput.value.trim();
+            const eventDateTime = eventDateTimeInput.value;
+            const eventLocation = eventLocationInput.value.trim();
+            const eventSpots = parseInt(eventSpotsInput.value, 10);
+            const eventMessage = eventMessageInput.value.trim();
+
+            if (!selectedCircleId) {
+                alert("Please select a circle to send the invite to.");
+                return;
+            }
+            if (!eventName || !eventDateTime || !eventLocation || isNaN(eventSpots) || eventSpots < 1) {
+                alert("Please enter a valid event name, date/time, location, and a positive number of spots.");
+                return;
+            }
+            
+            const selectedCircle = circles.find(c => c.id === selectedCircleId);
+            if (!selectedCircle) {
+                console.error("Selected circle not found.");
+                return;
+            }
+
+            const friends = selectedCircle.friends || [];
+
+            if (friends.length === 0) {
+                alert("The selected circle is empty. Please add friends first.");
+                return;
+            }
+
+            const eventData = {
+                creator_id: userId,
+                event_name: eventName,
+                event_datetime: eventDateTime,
+                event_location: eventLocation,
+                available_spots: eventSpots,
+                invited_users: friends,
+                responses: [],
+                circle_name: selectedCircle.name,
+                created_at: serverTimestamp()
+            };
+
+            if (eventMessage) {
+                eventData.event_message = eventMessage;
+            }
+            
+            const eventsCollectionRef = collection(db, `/artifacts/${appId}/public/data/events`);
+
+            try {
+                console.log('Creating event invite...');
+                await addDoc(eventsCollectionRef, eventData);
+                console.log('Event invite created successfully!');
+                circleSelect.value = '';
+                eventNameInput.value = '';
+                eventDateTimeInput.value = '';
+                eventLocationInput.value = '';
+                eventSpotsInput.value = '4';
+                eventMessageInput.value = '';
+            } catch (error) {
+                console.error("Error creating invite:", error);
+                alert("Error creating invite: " + error.message);
+            }
+        }
+        
+        async function respondToInvite(eventId) {
+            if (!isAuthReady) return;
+            const eventDocRef = doc(db, `/artifacts/${appId}/public/data/events`, eventId);
+            
+            try {
+                await updateDoc(eventDocRef, {
+                    responses: arrayUnion({ user_id: userId, responded_at: serverTimestamp() })
+                });
+                console.log('Response recorded!');
+            } catch (error) {
+                console.error("Error responding to invite:", error);
+            }
+        }
+        
+        async function openEditEventModal(eventId) {
+            if (!isAuthReady) return;
+            const eventDocRef = doc(db, `/artifacts/${appId}/public/data/events`, eventId);
+            const eventSnap = await getDoc(eventDocRef);
+            if (eventSnap.exists()) {
+                const eventData = eventSnap.data();
+                editEventIdInput.value = eventId;
+                editEventNameInput.value = eventData.event_name || '';
+                editEventDateTimeInput.value = eventData.event_datetime ? eventData.event_datetime.substring(0, 16) : '';
+                editEventLocationInput.value = eventData.event_location || '';
+                editEventSpotsInput.value = eventData.available_spots || 4;
+                editEventMessageInput.value = eventData.event_message || '';
+                editEventModal.classList.remove('hidden');
+            } else {
+                console.error("Event not found!");
+            }
+        }
+        
+        async function updateEventDetails() {
+            if (!isAuthReady) return;
+            const eventId = editEventIdInput.value;
+            const eventDocRef = doc(db, `/artifacts/${appId}/public/data/events`, eventId);
+            
+            const updatedData = {
+                event_name: editEventNameInput.value.trim(),
+                event_datetime: editEventDateTimeInput.value,
+                event_location: editEventLocationInput.value.trim(),
+                available_spots: parseInt(editEventSpotsInput.value, 10),
+                event_message: editEventMessageInput.value.trim()
+            };
+
+            if (!updatedData.event_name || !updatedData.event_datetime || !updatedData.event_location || isNaN(updatedData.available_spots) || updatedData.available_spots < 1) {
+                alert("Please enter a valid event name, date/time, location, and a positive number of spots.");
+                return;
+            }
+
+            try {
+                await updateDoc(eventDocRef, updatedData);
+                console.log("Event updated successfully!");
+                editEventModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Error updating event:", error);
+            }
+        }
+
+        function renderCircles() {
+            circlesListElem.innerHTML = '';
+            if (circles.length === 0) {
+                noCirclesElem.classList.remove('hidden');
+            } else {
+                noCirclesElem.classList.add('hidden');
+            }
+            
+            circles.forEach(circle => {
+                const circleItem = document.createElement('div');
+                circleItem.className = 'p-4 bg-gray-700 rounded-lg';
+                
+                let friendsHtml = '';
+                if (circle.friends && circle.friends.length > 0) {
+                    friendsHtml = circle.friends.map(friendId => `
+                        <div class="p-3 bg-gray-800 rounded-lg break-all flex items-center justify-between">
+                            <span>${friendId}</span>
+                            <button class="remove-btn text-sm px-2 py-1 ml-4" onclick="removeFriendFromCircle('${circle.id}', '${friendId}')">Remove</button>
+                        </div>
+                    `).join('');
+                } else {
+                    friendsHtml = '<p class="text-gray-400 text-sm">This circle is empty. Add friends using their ID.</p>';
+                }
+                
+                circleItem.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-lg font-semibold">${circle.name} (${circle.friends ? circle.friends.length : 0})</h3>
+                        <div class="flex gap-2">
+                            <button class="secondary-btn text-sm px-2 py-1" onclick="editCircleName('${circle.id}')">Edit</button>
+                            <button class="remove-btn text-sm px-2 py-1" onclick="deleteCircle('${circle.id}')">Delete Circle</button>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-2 mb-4">
+                        <input type="text" id="friendIdInput-${circle.id}" class="flex-grow" placeholder="Enter friend's user ID">
+                        <button class="primary-btn text-sm" onclick="addFriendToCircle('${circle.id}')">Add Friend</button>
+                    </div>
+                    <div class="space-y-2">
+                        ${friendsHtml}
+                    </div>
+                `;
+                circlesListElem.appendChild(circleItem);
+            });
+
+            // Update circle select dropdown
+            circleSelect.innerHTML = '<option value="">Select a Circle</option>';
+            circles.forEach(circle => {
+                const option = document.createElement('option');
+                option.value = circle.id;
+                option.textContent = circle.name;
+                circleSelect.appendChild(option);
+            });
+        }
+
+        function renderMyInvites(invites) {
+            myInvitesListElem.innerHTML = '';
+            if (invites.length === 0) {
+                noMyInvitesElem.classList.remove('hidden');
+            } else {
+                noMyInvitesElem.classList.add('hidden');
+                invites.forEach(invite => {
+                    const inviteItem = document.createElement('div');
+                    inviteItem.className = 'p-4 bg-gray-700 rounded-lg';
+                    
+                    const availableSpots = invite.available_spots || 4;
+                    const lockedInPlayers = invite.responses
+                        .sort((a, b) => a.responded_at?.toDate() - b.responded_at?.toDate())
+                        .slice(0, availableSpots)
+                        .map(r => r.user_id);
+                        
+                    const pendingPlayers = invite.invited_users.filter(id => !lockedInPlayers.includes(id));
+                    
+                    const eventDate = invite.event_datetime ? new Date(invite.event_datetime).toLocaleString() : 'Not specified';
+                    const eventLocation = invite.event_location || 'Not specified';
+                    const eventMessage = invite.event_message || '';
+                    const circleName = invite.circle_name || 'Not specified';
+                    const createdDate = invite.created_at ? new Date(invite.created_at.toDate()).toLocaleString() : 'Not specified';
+
+                    let html = `
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-lg font-bold">${invite.event_name}</h4>
+                            <button class="secondary-btn text-sm px-2 py-1" onclick="openEditEventModal('${invite.id}')">Edit</button>
+                        </div>
+                        <p class="text-sm text-gray-400">Sent to: ${circleName}</p>
+                        <p class="text-sm text-gray-400">Event Time: ${eventDate}</p>
+                        <p class="text-sm text-gray-400 mb-2">Location: ${eventLocation}</p>
+                    `;
+                    if (eventMessage) {
+                        html += `<p class="text-sm text-gray-200 bg-gray-600 p-2 rounded-lg mb-2 mt-2 whitespace-pre-wrap">${eventMessage}</p>`;
+                    }
+                    html += `
+                        <p class="text-sm text-gray-400 mb-2">Invite created: ${createdDate}</p>
+                        <div class="mt-2">
+                            <h5 class="text-md font-semibold mb-1">Locked In (${lockedInPlayers.length}/${availableSpots})</h5>
+                            <ul class="list-disc list-inside space-y-1 text-sm">
+                                ${lockedInPlayers.length > 0 ? lockedInPlayers.map(id => `<li>${id}</li>`).join('') : '<li class="text-gray-400">No one has responded yet.</li>'}
+                            </ul>
+                        </div>
+                        <div class="mt-4">
+                            <h5 class="text-md font-semibold mb-1">Pending Responses</h5>
+                            <ul class="list-disc list-inside space-y-1 text-sm">
+                                ${pendingPlayers.length > 0 ? pendingPlayers.map(id => `<li>${id}</li>`).join('') : '<li class="text-gray-400">All responses received.</li>'}
+                            </ul>
+                        </div>
+                    `;
+                    inviteItem.innerHTML = html;
+                    myInvitesListElem.appendChild(inviteItem);
+                });
+            }
+        }
+
+        function renderInvitesForMe(invites) {
+            invitesForMeListElem.innerHTML = '';
+            if (
