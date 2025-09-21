@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firebase Test</title>
+</head>
+<body>
+    <h1>Firebase Connection Test</h1>
+    <div id="status">Testing...</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        const firebaseConfig = {
+          apiKey: "AIzaSyBAWYh4befoM0Uf1enzhetBWye014HyTzc",
+          authDomain: "roundup-b7908.firebaseapp.com",
+          projectId: "roundup-b7908",
+          storageBucket: "roundup-b7908.firebasestorage.app",
+          messagingSenderId: "485325587757",
+          appId: "1:485325587757:web:332005f780fb42bbbc7fa4",
+          measurementId: "G-2L5BX1XJTG"
+        };
+
+        const statusDiv = document.getElementById('status');
+
+        try {
+            statusDiv.innerHTML = 'Initializing Firebase...';
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            
+            statusDiv.innerHTML = 'Signing in...';
+            await signInAnonymously(auth);
+            
+            statusDiv.innerHTML = 'Testing database write...';
+            await setDoc(doc(db, 'test', 'simple'), { 
+                timestamp: new Date(),
+                test: 'success'
+            });
+            
+            statusDiv.innerHTML = 'SUCCESS! Firebase is working.';
+            statusDiv.style.color = 'green';
+            
+        } catch (error) {
+            statusDiv.innerHTML = `ERROR: ${error.message}`;
+            statusDiv.style.color = 'red';
+            console.error('Firebase error:', error);
+        }
+    </script>
+</body>
+</html>
